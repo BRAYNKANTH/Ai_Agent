@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+python-dotenv
+google-genai
+mysql-connector-python
+sqlmodel
+authlib
+itsdangerous
+httpx
+google-auth
+google-auth-oauthlib
+openai

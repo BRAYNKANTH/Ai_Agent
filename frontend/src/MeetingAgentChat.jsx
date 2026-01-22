@@ -7,7 +7,7 @@ function MeetingAgentChat() {
     useEffect(() => {
         const fetchHistory = async () => {
             try {
-                const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/chat/history`);
+                const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/chat/history`);
                 if (res.ok) {
                     const history = await res.json();
                     // Convert DB history to UI messages
@@ -32,7 +32,7 @@ function MeetingAgentChat() {
         setInput('');
 
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/meeting-agent/chat`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/meeting-agent/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -59,7 +59,7 @@ function MeetingAgentChat() {
                     <button
                         onClick={async () => {
                             if (window.confirm("Start a new chat? This will clear current history.")) {
-                                await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/chat/history`, { method: 'DELETE' });
+                                await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/chat/history`, { method: 'DELETE' });
                                 setMessages([]);
                             }
                         }}
@@ -74,7 +74,7 @@ function MeetingAgentChat() {
                     <button
                         onClick={async () => {
                             if (window.confirm("Delete chat history permanently?")) {
-                                await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/chat/history`, { method: 'DELETE' });
+                                await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/chat/history`, { method: 'DELETE' });
                                 setMessages([]);
                             }
                         }}

@@ -20,7 +20,7 @@ const ComposeModal = ({ isOpen, onClose, initialData = {} }) => {
         if (!body.trim()) return;
         setRewriting(true);
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/agent/rewrite`, {
+            const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/agent/rewrite`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text: body, style })
@@ -42,7 +42,7 @@ const ComposeModal = ({ isOpen, onClose, initialData = {} }) => {
     const handleSend = async () => {
         setSending(true);
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/send-email`, {
+            const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/send-email`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',

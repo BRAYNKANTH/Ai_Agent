@@ -24,7 +24,7 @@ function App() {
 
   // Check Session
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/auth/me`, { credentials: 'include' })
+    fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/auth/me`, { credentials: 'include' })
       .then(res => {
         if (res.ok) return res.json()
         throw new Error('Not authenticated')
@@ -46,7 +46,7 @@ function App() {
   useEffect(() => {
     const checkMeetings = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/meetings`);
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/meetings`);
         if (res.ok) {
           const meetings = await res.json();
           const now = new Date();
@@ -85,7 +85,7 @@ function App() {
 
   const fetchEmails = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/emails`, { credentials: 'include' })
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/emails`, { credentials: 'include' })
       if (res.ok) {
         const data = await res.json()
         setEmails(data)
@@ -96,7 +96,7 @@ function App() {
   const handleSync = async () => {
     setSyncing(true)
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/sync`, { method: 'POST', credentials: 'include' })
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/sync`, { method: 'POST', credentials: 'include' })
 
       if (res.status === 401) {
         alert("Session expired or missing permissions. Please Log Out and Log In again.")
@@ -120,11 +120,11 @@ function App() {
   }
 
   const handleLogin = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/auth/login`
+    window.location.href = `${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/auth/login`
   }
 
   const handleLogout = async () => {
-    await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/auth/logout`, { credentials: 'include' })
+    await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/auth/logout`, { credentials: 'include' })
     setUser(null)
     setView('landing')
   }

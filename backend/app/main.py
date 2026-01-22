@@ -60,6 +60,30 @@ app.add_middleware(
 def on_startup():
     create_db_and_tables()
     create_meeting_db_and_tables()
+    
+    # Auto-Migration for user_email (since local script failed)
+    # This is a safe, idempotent operation to ensure columns exist
+    try:
+        from sqlmodel import text
+        with get_session() as session:
+            # 1. Add user_email to meeting if missing
+            try:
+                session.exec(text("ALTER TABLE meeting ADD COLUMN user_email VARCHAR(255);"))
+                session.commit()
+                print("Migration: Added user_email to meeting table.")
+            except Exception as e:
+                # Ignore if column exists (MySQL error 1060: Duplicate column name)
+                print(f"Migration Note (Meeting): {e}")
+
+            # 2. Add user_email to chathistory if missing
+            try:
+                session.exec(text("ALTER TABLE chathistory ADD COLUMN user_email VARCHAR(255);"))
+                session.commit()
+                print("Migration: Added user_email to chathistory table.")
+            except Exception as e:
+                print(f"Migration Note (ChatHistory): {e}")
+    except Exception as e:
+        print(f"Migration Failed: {e}")
 
 # OAuth Setup
 oauth = OAuth()

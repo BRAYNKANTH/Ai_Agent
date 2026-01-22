@@ -121,6 +121,27 @@ def on_startup():
     except Exception as e:
         print(f"Migration Failed: {e}")
 
+    # Auto-Migration for gmail_id (Deduplication)
+    try:
+        from sqlmodel import text
+        with Session(engine) as session:
+            try:
+                # Check if we need to purge duplicates first (Optional, but safer to just allow the column add to fail if needed, or we rely on the reset endpoint)
+                # But to enforce uniqueness, we often need to empty the table if it has bad data.
+                pass 
+                
+                # Add Column
+                session.exec(text("ALTER TABLE email ADD COLUMN gmail_id VARCHAR(255);"))
+                # Add Unique Index
+                session.exec(text("CREATE UNIQUE INDEX ix_email_gmail_id ON email (gmail_id);"))
+                
+                session.commit()
+                print("Migration: Added gmail_id to email table.")
+            except Exception as e:
+                print(f"Migration Note (Email gmail_id): {e}")
+    except Exception as e:
+        print(f"Email Migration Failed: {e}")
+
 # OAuth Setup
 oauth = OAuth()
 oauth.register(
@@ -391,3 +412,18 @@ def delete_meeting_endpoint(meeting_id: int, session: Session = Depends(get_meet
     session.commit()
     return {"message": "Meeting deleted"}
 
+    return {"message": "Meeting deleted"}
+
+@app.post("/api/admin/reset-emails")
+def reset_emails_endpoint(user_data: dict = Depends(get_current_user_token), session: Session = Depends(get_session)):
+    """
+    Emergency Endpoint to wipe emails and enforce clean slate.
+    """
+    try:
+        from sqlmodel import text
+        # WIPE ALL EMAILS
+        session.exec(text("DELETE FROM email"))
+        session.commit()
+        return {"message": "✅ All emails have been wiped. Sync again to fetch fresh duplicates-free data."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

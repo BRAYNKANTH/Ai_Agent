@@ -114,12 +114,25 @@ class GmailService:
                 # Analyze
                 agent_email = AgentEmail(subject, sender, received_time.isoformat(), snippet, body)
                 
-                # Rate limit: Sleep to avoid hitting 15 RPM (approx 4s per request)
-                time.sleep(4)
+                # EXTRACT GMAIL ID
+                gmail_id = msg_id # 'id' field from message meta
+
+                # DEDUPLICATION CHECK
+                existing_email = self.session.exec(select(Email).where(Email.gmail_id == gmail_id)).first()
+                if existing_email:
+                    print(f"Skipping duplicate email: {gmail_id}")
+                    continue
+
+                # Analyze (Only if new)
+                
+                # Rate limit: Sleep to avoid hitting 15 RPM
+                time.sleep(2) # Reduced from 4s since we skip duplicates now
+
                 analysis = self.agent.analyze_email(agent_email)
                 
                 # Save to DB
                 email_db = Email(
+                    gmail_id=gmail_id, # Save ID
                     user_id=user.id,
                     subject=subject,
                     sender=sender,
@@ -127,7 +140,7 @@ class GmailService:
                     body=body,
                     received_time=received_time,
                     intent=analysis.get('intent', 'Unknown'),
-                    summary=analysis.get('summary', snippet), # Fallback to snippet if no summary
+                    summary=analysis.get('summary', snippet), 
                     urgency_score=analysis.get('urgency_score', 1),
                     risk_level=analysis.get('risk_level', 'Low'),
                     priority=analysis.get('priority', 'P4'),

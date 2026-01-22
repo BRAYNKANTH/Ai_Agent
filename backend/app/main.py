@@ -6,6 +6,13 @@ from pathlib import Path
 # Load env before importing DB modules
 load_dotenv()
 
+# Helper to strip quotes from Azure/Env vars
+def get_safe_env(key, default=None):
+    val = os.getenv(key, default)
+    if val:
+        return val.strip('"').strip("'")
+    return val
+
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import RedirectResponse
 from authlib.integrations.starlette_client import OAuth
@@ -25,12 +32,12 @@ app = FastAPI(title="AI Personal Assistant API")
 from fastapi.middleware.cors import CORSMiddleware
 
 # Get allowed origins from env, default to validation set
-allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
+allowed_origins_env = get_safe_env("ALLOWED_ORIGINS", "")
 allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
 # Add default local development origins
 allowed_origins.extend(["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174"])
 # Add production frontend URL if set
-frontend_url = os.getenv("FRONTEND_URL")
+frontend_url = get_safe_env("FRONTEND_URL")
 if frontend_url and frontend_url not in allowed_origins:
     allowed_origins.append(frontend_url)
 
@@ -41,7 +48,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.add_middleware(SessionMiddleware, secret_key=os.getenv("SECRET_KEY", "secret"), https_only=False, same_site="lax")
+app.add_middleware(SessionMiddleware, secret_key=get_safe_env("SECRET_KEY", "secret"), https_only=False, same_site="lax")
 
 # Database
 @app.on_event("startup")
@@ -53,8 +60,8 @@ def on_startup():
 oauth = OAuth()
 oauth.register(
     name='google',
-    client_id=os.getenv("GOOGLE_CLIENT_ID"),
-    client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+    client_id=get_safe_env("GOOGLE_CLIENT_ID"),
+    client_secret=get_safe_env("GOOGLE_CLIENT_SECRET"),
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
     client_kwargs={
         'scope': 'openid email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send',
@@ -81,7 +88,7 @@ def read_root():
 async def login(request: Request):
     # Just clear user data, keep session object intact to avoid middleware glitches
     request.session.pop('user', None)
-    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
+    redirect_uri = get_safe_env("GOOGLE_REDIRECT_URI")
     if not redirect_uri:
         redirect_uri = request.url_for('auth')
     # Force offline access and consent to ensure we receive a refresh_token
@@ -93,7 +100,7 @@ from .models import Email as EmailModel
 @app.get("/auth/callback")
 async def auth(request: Request, session: Session = Depends(get_session)):
     try:
-        redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
+        redirect_uri = get_safe_env("GOOGLE_REDIRECT_URI")
         if not redirect_uri:
             redirect_uri = request.url_for('auth')
         
@@ -148,7 +155,7 @@ async def auth(request: Request, session: Session = Depends(get_session)):
         }
     
     # Redirect to frontend
-    target_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    target_url = get_safe_env("FRONTEND_URL", "http://localhost:5173")
     return RedirectResponse(url=target_url)
 
 @app.get("/auth/me")

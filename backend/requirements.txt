@@ -10,3 +10,4 @@ httpx
 google-auth
 google-auth-oauthlib
 openai
+google-api-python-client

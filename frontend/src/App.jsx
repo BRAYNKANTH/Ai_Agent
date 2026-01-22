@@ -22,19 +22,40 @@ function App() {
     setIsComposeOpen(true)
   }
 
-  // Check Session
+  // Check Session & Extract Token
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/auth/me`, { credentials: 'include' })
-      .then(res => {
-        if (res.ok) return res.json()
-        throw new Error('Not authenticated')
+    // 1. Check for Token in URL (Login Redirect)
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get('token');
+
+    if (urlToken) {
+      localStorage.setItem('token', urlToken);
+      // Clean URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    const token = localStorage.getItem('token');
+
+    if (token) {
+      fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       })
-      .then(data => {
-        setUser(data)
-        setView('dashboard')
-        fetchEmails() // Fetch on load
-      })
-      .catch(() => setUser(null))
+        .then(res => {
+          if (res.ok) return res.json()
+          throw new Error('Not authenticated')
+        })
+        .then(data => {
+          setUser(data)
+          setView('dashboard')
+          fetchEmails() // Fetch on load
+        })
+        .catch(() => {
+          localStorage.removeItem('token');
+          setUser(null);
+        })
+    }
 
     // Request Notification Permission
     if (Notification.permission !== "granted") {
@@ -45,8 +66,13 @@ function App() {
   // Poll for upcoming meetings for notifications
   useEffect(() => {
     const checkMeetings = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/meetings`);
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/meetings`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
         if (res.ok) {
           const meetings = await res.json();
           const now = new Date();
@@ -84,8 +110,13 @@ function App() {
   }, []);
 
   const fetchEmails = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/emails`, { credentials: 'include' })
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/emails`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
       if (res.ok) {
         const data = await res.json()
         setEmails(data)
@@ -95,11 +126,24 @@ function App() {
 
   const handleSync = async () => {
     setSyncing(true)
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+      alert("Please log in first.");
+      setSyncing(false);
+      return;
+    }
+
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/sync`, { method: 'POST', credentials: 'include' })
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/sync`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
 
       if (res.status === 401) {
         alert("Session expired or missing permissions. Please Log Out and Log In again.")
+        localStorage.removeItem('token');
+        setUser(null);
         return
       }
 
@@ -120,11 +164,13 @@ function App() {
   }
 
   const handleLogin = () => {
+    // Redirect to backend login, which will redirect back with ?token=...
     window.location.href = `${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/auth/login`
   }
 
   const handleLogout = async () => {
-    await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/auth/logout`, { credentials: 'include' })
+    // Just clear local state, backend session is stateless JWT (mostly)
+    localStorage.removeItem('token');
     setUser(null)
     setView('landing')
   }

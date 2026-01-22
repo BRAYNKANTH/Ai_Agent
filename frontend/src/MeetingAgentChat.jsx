@@ -6,8 +6,12 @@ function MeetingAgentChat() {
 
     useEffect(() => {
         const fetchHistory = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) return;
             try {
-                const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/chat/history`);
+                const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/chat/history`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 if (res.ok) {
                     const history = await res.json();
                     // Convert DB history to UI messages
@@ -32,9 +36,13 @@ function MeetingAgentChat() {
         setInput('');
 
         try {
+            const token = localStorage.getItem('token');
             const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/meeting-agent/chat`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     message: input,
                     conversation_history: messages
@@ -59,7 +67,11 @@ function MeetingAgentChat() {
                     <button
                         onClick={async () => {
                             if (window.confirm("Start a new chat? This will clear current history.")) {
-                                await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/chat/history`, { method: 'DELETE' });
+                                const token = localStorage.getItem('token');
+                                await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/chat/history`, {
+                                    method: 'DELETE',
+                                    headers: { 'Authorization': `Bearer ${token}` }
+                                });
                                 setMessages([]);
                             }
                         }}
@@ -74,7 +86,11 @@ function MeetingAgentChat() {
                     <button
                         onClick={async () => {
                             if (window.confirm("Delete chat history permanently?")) {
-                                await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/chat/history`, { method: 'DELETE' });
+                                const token = localStorage.getItem('token');
+                                await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/chat/history`, {
+                                    method: 'DELETE',
+                                    headers: { 'Authorization': `Bearer ${token}` }
+                                });
                                 setMessages([]);
                             }
                         }}

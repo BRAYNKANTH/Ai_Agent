@@ -42,3 +42,4 @@ class ChatHistory(SQLModel, table=True):
     sender: str # 'user' or 'agent'
     text: str # stored as plain text
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+    user_email: str = Field(index=True, default=None, nullable=True) # Data isolation

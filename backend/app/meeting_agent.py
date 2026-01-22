@@ -8,8 +8,9 @@ from .meeting_models import Meeting
 from .models import ChatHistory
 
 class MeetingAgent:
-    def __init__(self, session: Session):
+    def __init__(self, session: Session, user_email: str):
         self.session = session
+        self.user_email = user_email
         
         # Configure Gemini Client
         api_key = os.getenv("GEMINI_API_KEY")
@@ -147,8 +148,8 @@ class MeetingAgent:
             if result: response_text = result
 
         # Persist Chat History
-        self.session.add(ChatHistory(sender="user", text=user_message))
-        self.session.add(ChatHistory(sender="agent", text=response_text))
+        self.session.add(ChatHistory(sender="user", text=user_message, user_email=self.user_email))
+        self.session.add(ChatHistory(sender="agent", text=response_text, user_email=self.user_email))
         self.session.commit()
 
         return {"response": response_text, "action": intent}
@@ -168,6 +169,7 @@ class MeetingAgent:
             # Check for conflicts
             # Overlap if: (StartA < EndB) and (EndA > StartB)
             stmt = select(Meeting).where(
+                Meeting.user_email == self.user_email,
                 Meeting.status == "scheduled",
                 Meeting.start_time < end_dt,
                 Meeting.end_time > start_dt
@@ -183,7 +185,8 @@ class MeetingAgent:
                 start_time=start_dt,
                 end_time=end_dt,
                 participants=participants,
-                status="scheduled"
+                status="scheduled",
+                user_email=self.user_email
             )
             self.session.add(new_meeting)
             self.session.commit()
@@ -198,7 +201,7 @@ class MeetingAgent:
             if not date_str: date_str = datetime.date.today().isoformat()
             target_date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
             
-            stmt = select(Meeting).where(Meeting.status == "scheduled")
+            stmt = select(Meeting).where(Meeting.user_email == self.user_email, Meeting.status == "scheduled")
             all_meetings = self.session.exec(stmt).all()
             day_meetings = [m for m in all_meetings if m.start_time.date() == target_date]
             
@@ -216,7 +219,7 @@ class MeetingAgent:
 
     def _update_last_meeting(self, payload):
         try:
-            stmt = select(Meeting).order_by(Meeting.created_at.desc()).limit(1)
+            stmt = select(Meeting).where(Meeting.user_email == self.user_email).order_by(Meeting.created_at.desc()).limit(1)
             last_meeting = self.session.exec(stmt).first()
             if not last_meeting: return "No meeting found to update."
             
@@ -249,7 +252,11 @@ class MeetingAgent:
                 # Delete by title
                 for title_query in titles:
                     # Case-insensitive partial match
-                    stmt = select(Meeting).where(Meeting.title.ilike(f"%{title_query}%"), Meeting.status == "scheduled")
+                    stmt = select(Meeting).where(
+                        Meeting.user_email == self.user_email, 
+                        Meeting.title.ilike(f"%{title_query}%"), 
+                        Meeting.status == "scheduled"
+                    )
                     matches = self.session.exec(stmt).all()
                     
                     for m in matches:
@@ -263,7 +270,7 @@ class MeetingAgent:
                     return f"I couldn't find any scheduled meetings matching: {', '.join(titles)}."
             else:
                 # Fallback: Delete last created
-                stmt = select(Meeting).where(Meeting.status == "scheduled").order_by(Meeting.created_at.desc()).limit(1)
+                stmt = select(Meeting).where(Meeting.user_email == self.user_email, Meeting.status == "scheduled").order_by(Meeting.created_at.desc()).limit(1)
                 last = self.session.exec(stmt).first()
                 if last:
                     self.session.delete(last)

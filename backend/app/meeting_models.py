@@ -9,6 +9,7 @@ class Meeting(SQLModel, table=True):
     end_time: datetime = Field(description="End time of the meeting")
     participants: str = Field(description="Comma  separated list of participants")
     status: str = Field(default="scheduled", description="Status: scheduled, cancelled")
+    user_email: str = Field(index=True, default=None, nullable=True) # Data isolation
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 

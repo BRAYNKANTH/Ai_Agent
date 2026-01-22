@@ -294,8 +294,9 @@ async def query_inbox(req: QueryInboxRequest, session: Session = Depends(get_ses
         answer = rag_agent.query_inbox(req.query)
         
         # Save to DB
-        user_msg = ChatHistory(sender="user", text=req.query, timestamp=datetime.datetime.utcnow())
-        agent_msg = ChatHistory(sender="agent", text=answer, timestamp=datetime.datetime.utcnow())
+        user_email = request.session.get('user', {}).get('email')
+        user_msg = ChatHistory(sender="user", text=req.query, timestamp=datetime.datetime.utcnow(), user_email=user_email)
+        agent_msg = ChatHistory(sender="agent", text=answer, timestamp=datetime.datetime.utcnow(), user_email=user_email)
         session.add(user_msg)
         session.add(agent_msg)
         session.commit()
@@ -306,14 +307,24 @@ async def query_inbox(req: QueryInboxRequest, session: Session = Depends(get_ses
          raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/meeting-agent/chat")
-def chat_with_meeting_agent(request: ChatRequest, session: Session = Depends(get_meeting_session)):
-    meeting_agent = MeetingAgent(session)
+def chat_with_meeting_agent(request: ChatRequest, req: Request, session: Session = Depends(get_meeting_session)):
+    user_data = req.session.get('user')
+    if not user_data:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    user_email = user_data['email']
+    meeting_agent = MeetingAgent(session, user_email)
     return meeting_agent.process_message(request.message, request.conversation_history)
 
 @app.get("/api/meetings")
-def get_all_meetings(session: Session = Depends(get_meeting_session)):
+def get_all_meetings(req: Request, session: Session = Depends(get_meeting_session)):
+    user_data = req.session.get('user')
+    if not user_data:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+        
     try:
-        stmt = select(Meeting).order_by(Meeting.start_time)
+        user_email = user_data['email']
+        stmt = select(Meeting).where(Meeting.user_email == user_email).order_by(Meeting.start_time)
         meetings = session.exec(stmt).all()
         return meetings
     except Exception as e:
@@ -321,14 +332,24 @@ def get_all_meetings(session: Session = Depends(get_meeting_session)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/chat/history")
-def get_chat_history(session: Session = Depends(get_meeting_session)):
-    stmt = select(ChatHistory).order_by(ChatHistory.timestamp)
+def get_chat_history(req: Request, session: Session = Depends(get_meeting_session)):
+    user_data = req.session.get('user')
+    if not user_data:
+        return []
+
+    user_email = user_data['email']
+    stmt = select(ChatHistory).where(ChatHistory.user_email == user_email).order_by(ChatHistory.timestamp)
     history = session.exec(stmt).all()
     return history
 
 @app.delete("/api/chat/history")
-def clear_chat_history(session: Session = Depends(get_meeting_session)):
-    stmt = select(ChatHistory)
+def clear_chat_history(req: Request, session: Session = Depends(get_meeting_session)):
+    user_data = req.session.get('user')
+    if not user_data:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    user_email = user_data['email']
+    stmt = select(ChatHistory).where(ChatHistory.user_email == user_email)
     history = session.exec(stmt).all()
     for h in history:
         session.delete(h)

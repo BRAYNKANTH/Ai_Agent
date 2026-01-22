@@ -84,7 +84,7 @@ class GmailService:
             service = build('gmail', 'v1', credentials=creds)
             
             # List messages
-            results = service.users().messages().list(userId='me', maxResults=10).execute()
+            results = service.users().messages().list(userId='me', maxResults=50).execute()
             messages = results.get('messages', [])
 
             new_emails = []

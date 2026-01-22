@@ -12,6 +12,6 @@ google-auth-oauthlib
 openai
 google-api-python-client
 pyjwt
-scikit-learn
+scikit-learn==1.6.1
 pandas
 joblib

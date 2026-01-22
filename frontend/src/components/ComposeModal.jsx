@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 
 const ComposeModal = ({ isOpen, onClose, initialData = {} }) => {
     const [to, setTo] = useState('');
@@ -19,6 +20,7 @@ const ComposeModal = ({ isOpen, onClose, initialData = {} }) => {
     const handleRewrite = async (style) => {
         if (!body.trim()) return;
         setRewriting(true);
+        const toastId = toast.loading('Rewriting...');
         try {
             const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/agent/rewrite`, {
                 method: 'POST',
@@ -28,12 +30,13 @@ const ComposeModal = ({ isOpen, onClose, initialData = {} }) => {
             if (res.ok) {
                 const data = await res.json();
                 setBody(data.result);
+                toast.success('Rewrite complete!', { id: toastId });
             } else {
-                alert("Rewrite failed.");
+                toast.error("Rewrite failed.", { id: toastId });
             }
         } catch (e) {
             console.error(e);
-            alert("Error rewriting.");
+            toast.error("Error rewriting.", { id: toastId });
         } finally {
             setRewriting(false);
         }
@@ -42,6 +45,8 @@ const ComposeModal = ({ isOpen, onClose, initialData = {} }) => {
     const handleSend = async () => {
         setSending(true);
         const token = localStorage.getItem('token');
+        const toastId = toast.loading('Sending email...');
+
         try {
             const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/send-email`, {
                 method: 'POST',
@@ -53,18 +58,18 @@ const ComposeModal = ({ isOpen, onClose, initialData = {} }) => {
             });
 
             if (res.ok) {
-                alert("Email sent successfully!");
+                toast.success("Email sent successfully!", { id: toastId });
                 onClose();
                 setTo('');
                 setSubject('');
                 setBody('');
             } else {
                 const err = await res.json();
-                alert("Failed to send: " + err.detail);
+                toast.error("Failed to send: " + err.detail, { id: toastId });
             }
         } catch (e) {
             console.error(e);
-            alert("Error sending email.");
+            toast.error("Error sending email.", { id: toastId });
         } finally {
             setSending(false);
         }

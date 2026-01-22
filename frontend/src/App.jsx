@@ -1,3 +1,6 @@
+import { toast, Toaster } from 'react-hot-toast'
+
+
 import { useState, useEffect } from 'react'
 import { PriorityChart, CategoryChart } from './components/Charts'
 import MeetingAgentChat from './MeetingAgentChat'
@@ -57,7 +60,7 @@ function App() {
         })
     }
 
-    // Request Notification Permission
+    // Request Notification Permission (Optional now with toasts, but keeping for completeness if we want system fallback)
     if (Notification.permission !== "granted") {
       Notification.requestPermission();
     }
@@ -83,20 +86,19 @@ function App() {
             const diffMins = diffMs / (1000 * 60);
 
             // Notification logic: 1 day (around 1440 mins), 2 hours (120 mins), 0 mins
-            // We use a small window (e.g., 0-1 min) to avoid duplicate alerts, or ideally track 'alerted' state.
-            // For MVP simpler approach: just check if it falls in the minute window.
+            // We use a small window (e.g., 0-1 min) to avoid duplicate alerts.
 
             // 24 hours before (1439-1441 mins)
             if (diffMins >= 1439 && diffMins <= 1441) {
-              new Notification(`Upcoming Meeting Tomorrow: ${m.title}`, { body: `At ${start.toLocaleTimeString()}` });
+              toast(`Upcoming Meeting Tomorrow: ${m.title} at ${start.toLocaleTimeString()}`, { icon: '📅' });
             }
             // 2 hours before (119-121 mins)
             if (diffMins >= 119 && diffMins <= 121) {
-              new Notification(`Meeting in 2 Hours: ${m.title}`, { body: `Get ready!` });
+              toast(`Meeting in 2 Hours: ${m.title}`, { icon: '⏳' });
             }
             // Starting now (0-2 mins)
             if (diffMins >= 0 && diffMins <= 2) {
-              new Notification(`Meeting Starting Now: ${m.title}`, { body: `Join the meeting!` });
+              toast(`Meeting Starting Now: ${m.title}`, { icon: '🚀', duration: 10000 });
             }
           });
         }
@@ -129,10 +131,12 @@ function App() {
     const token = localStorage.getItem('token');
 
     if (!token) {
-      alert("Please log in first.");
+      toast.error("Please log in first.");
       setSyncing(false);
       return;
     }
+
+    const toastId = toast.loading('Syncing emails...');
 
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/sync`, {
@@ -141,7 +145,7 @@ function App() {
       })
 
       if (res.status === 401) {
-        alert("Session expired or missing permissions. Please Log Out and Log In again.")
+        toast.error("Session expired. Please Log In again.", { id: toastId });
         localStorage.removeItem('token');
         setUser(null);
         return
@@ -149,15 +153,14 @@ function App() {
 
       const data = await res.json()
       if (data.count && data.count > 0) {
-        // Check for High Priority
-        new Notification("New Emails Synced", { body: `${data.count} new emails analyzed.` })
+        toast.success(`${data.count} new emails analyzed.`, { id: toastId });
         fetchEmails()
       } else {
-        alert("No new emails found (or sync failed).")
+        toast.success("No new emails found.", { id: toastId });
       }
     } catch (e) {
       console.error(e)
-      alert("Sync failed. Check console.")
+      toast.error("Sync failed. Check console.", { id: toastId });
     } finally {
       setSyncing(false)
     }
@@ -177,6 +180,12 @@ function App() {
 
   return (
     <div className="min-h-screen bg-dark text-white selection:bg-primary selection:text-white font-sans">
+      <Toaster position="bottom-right" toastOptions={{
+        style: {
+          background: '#333',
+          color: '#fff',
+        },
+      }} />
       {/* Navbar */}
       <nav className="p-6 flex justify-between items-center max-w-7xl mx-auto border-b border-white/5">
         <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">

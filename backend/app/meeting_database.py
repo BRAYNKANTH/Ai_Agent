@@ -14,9 +14,15 @@ db_name = os.getenv("DB_NAME", "agent_db") # Using same DB for now/simplicity
 
 mysql_url = f"mysql+mysqlconnector://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 
-# SSL Configuration for Azure MySQL
-connect_args = {}
+# SSL Configuration
+connect_args = {"use_pure": True}
 ssl_ca = os.getenv("SSL_CA")
+
+if ssl_ca and not os.path.exists(ssl_ca):
+    candidate = os.path.join(os.path.dirname(__file__), "..", os.path.basename(ssl_ca))
+    if os.path.exists(candidate):
+        ssl_ca = candidate
+
 if ssl_ca:
     connect_args["ssl_ca"] = ssl_ca
     connect_args["ssl_verify_cert"] = True

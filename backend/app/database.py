@@ -14,14 +14,22 @@ db_name = os.getenv("DB_NAME", "users_db")
 
 mysql_url = f"mysql+mysqlconnector://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 
-# SSL Configuration for Azure MySQL
-connect_args = {}
-ssl_ca = os.getenv("SSL_CA") # e.g., "backend/DigiCertGlobalRootCA.crt.pem" or absolute path
+# SSL Configuration
+connect_args = {"use_pure": True} # Force pure Python to avoid C-ext SSL errors
+ssl_ca = os.getenv("SSL_CA")
+
+# Fallback: Try to find cert relative to this file if env var path fails
+if ssl_ca and not os.path.exists(ssl_ca):
+    # Check parent directory (backend root)
+    candidate = os.path.join(os.path.dirname(__file__), "..", os.path.basename(ssl_ca))
+    if os.path.exists(candidate):
+        ssl_ca = candidate
+
 if ssl_ca:
     connect_args["ssl_ca"] = ssl_ca
     connect_args["ssl_verify_cert"] = True
 
-# Use MySQL if env var is set or default string is valid, else fallback (though here we hard switch)
+# Use MySQL if env var is set or default string is valid, else fallback
 # For this migration, we assume user will provide DB
 engine = create_engine(mysql_url, echo=True, connect_args=connect_args)
 

@@ -59,3 +59,8 @@ build/
 # Database artifacts
 *.db
 *.sqlite3
+
+# AI Datasets (Too large for GitHub)
+backend/training_data/
+backend/training_data/*.csv
+backend/training_data/intent_raw/

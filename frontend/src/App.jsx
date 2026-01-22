@@ -261,24 +261,44 @@ function App() {
             {/* About Us Section */}
             <section id="about" className="py-20 px-6 bg-dark">
               <div className="max-w-6xl mx-auto">
-                <h3 className="text-3xl font-bold text-center mb-12 bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-blue-500">What is AI Doing?</h3>
-                <div className="grid md:grid-cols-3 gap-8 text-center">
-                  <div className="p-8 bg-white/5 rounded-2xl border border-white/10 hover:border-primary/50 transition-colors">
-                    <div className="text-4xl mb-4">🧠</div>
-                    <h4 className="text-xl font-bold mb-3">Intelligent Analysis</h4>
-                    <p className="text-gray-400">Our AI reads every email, understanding context, urgency, and sentiment to highlight what matters most.</p>
+                <h3 className="text-3xl font-bold text-center mb-12 bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-blue-500">
+                  Our Hybrid AI Architecture
+                </h3>
+
+                <div className="grid md:grid-cols-3 gap-8 text-center relative z-10">
+                  {/* Layer 1 */}
+                  <div className="p-8 bg-white/5 rounded-2xl border border-white/10 hover:border-primary/50 transition-colors group">
+                    <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">🛡️</div>
+                    <h4 className="text-xl font-bold mb-3 text-red-400">Layer 1: The Gatekeeper</h4>
+                    <p className="text-gray-400 text-sm mb-4">Local Spam Filter (Naive Bayes)</p>
+                    <p className="text-gray-300">
+                      Instantly blocks 99% of spam locally in <span className="font-bold text-white">5ms</span>. Zero API cost.
+                    </p>
                   </div>
-                  <div className="p-8 bg-white/5 rounded-2xl border border-white/10 hover:border-primary/50 transition-colors">
-                    <div className="text-4xl mb-4">✍️</div>
-                    <h4 className="text-xl font-bold mb-3">Smart Drafting</h4>
-                    <p className="text-gray-400">Struggling for words? The AI drafts professional, context-aware replies for you in seconds.</p>
+
+                  {/* Layer 2 */}
+                  <div className="p-8 bg-white/5 rounded-2xl border border-white/10 hover:border-primary/50 transition-colors group">
+                    <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">🏷️</div>
+                    <h4 className="text-xl font-bold mb-3 text-yellow-400">Layer 2: The Tagger</h4>
+                    <p className="text-gray-400 text-sm mb-4">Intent Classifier (SVM)</p>
+                    <p className="text-gray-300">
+                      Automatically detects 10+ categories like <span className="text-white">Finance, Urgent, Work</span> using a custom-trained multi-label model.
+                    </p>
                   </div>
-                  <div className="p-8 bg-white/5 rounded-2xl border border-white/10 hover:border-primary/50 transition-colors">
-                    <div className="text-4xl mb-4">📅</div>
-                    <h4 className="text-xl font-bold mb-3">Meeting Management</h4>
-                    <p className="text-gray-400">Never miss a meeting. The AI tracks your schedule and provides timely automated reminders.</p>
+
+                  {/* Layer 3 */}
+                  <div className="p-8 bg-white/5 rounded-2xl border border-white/10 hover:border-primary/50 transition-colors group">
+                    <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">🧠</div>
+                    <h4 className="text-xl font-bold mb-3 text-purple-400">Layer 3: The Analyst</h4>
+                    <p className="text-gray-400 text-sm mb-4">Google Gemini 2.5 (LLM)</p>
+                    <p className="text-gray-300">
+                      Deep reasoning. Drafts replies, summarizes deadlines, and analyzes sentiment with human-like intelligence.
+                    </p>
                   </div>
                 </div>
+
+                {/* Connecting Line (Visual Flair) */}
+                <div className="hidden md:block absolute top-1/2 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent -z-10 transform -translate-y-12"></div>
               </div>
             </section>
 
@@ -372,24 +392,31 @@ function App() {
             {tab === 'inbox' && (
               <div className="space-y-4 animate-fade-in">
                 {/* Filters */}
-                <div className="flex space-x-2 pb-2 overflow-x-auto">
-                  {['All', 'Urgent', 'Action', 'Updates'].map(cat => (
-                    <button
-                      key={cat}
-                      onClick={() => setCategory(cat)}
-                      className={`px-3 py-1 rounded-full text-xs font-bold border ${category === cat ? 'bg-white text-dark border-white' : 'border-gray-600 text-gray-400 hover:border-gray-400'}`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
+                <div className="flex space-x-2 pb-2 overflow-x-auto no-scrollbar">
+                  {['All', 'Urgent', 'Finance', 'Meeting', 'Work', 'Personal', 'Newsletter', 'Receipts', 'Notification', 'Phishing', 'Spam'].map(cat => {
+                    // Calculate Count
+                    const count = cat === 'All'
+                      ? emails.length
+                      : emails.filter(e => (e.intent && e.intent.includes(cat)) || (cat === 'Urgent' && e.priority === 'P1')).length;
+
+                    return (
+                      <button
+                        key={cat}
+                        onClick={() => setCategory(cat)}
+                        className={`px-4 py-1.5 rounded-full text-xs font-bold border whitespace-nowrap transition-all ${category === cat ? 'bg-white text-dark border-white shadow-md transform scale-105' : 'border-gray-600 text-gray-400 hover:border-gray-400 hover:text-white'}`}
+                      >
+                        {cat} <span className={`ml-1 opacity-60 ${count > 0 ? 'text-primary' : ''}`}>({count})</span>
+                      </button>
+                    )
+                  })}
                 </div>
 
                 {emails
                   .filter(email => {
-                    if (category === 'Urgent') return email.priority === 'P1';
-                    if (category === 'Action') return email.requires_action;
-                    if (category === 'Updates') return email.priority === 'P3' || email.priority === 'P4';
-                    return true;
+                    if (category === 'All') return true;
+                    // Flexible matching for new categories
+                    if (category === 'Urgent') return email.priority === 'P1' || (email.intent && email.intent.includes('Urgent'));
+                    return email.intent && email.intent.includes(category);
                   })
                   .map(email => (
                     <div

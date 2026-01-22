@@ -45,7 +45,29 @@ class MailAgent:
             
         self.model_name = "gemini-2.5-flash"
 
+        # Load Local Spam Model
+        import joblib
+        try:
+            self.spam_classifier = joblib.load("backend/app/models/spam_classifier.pkl")
+            self.vectorizer = joblib.load("backend/app/models/tfidf_vectorizer.pkl")
+            print("✅ Local Spam Filter Loaded")
+        except Exception as e:
+            print(f"⚠️ Could not load local spam model: {e}")
+            self.spam_classifier = None
+            self.vectorizer = None
+
+        # Load Intent Classifier (Multi-Label)
+        try:
+            self.intent_pipeline = joblib.load("backend/app/models/intent_pipeline.pkl")
+            self.intent_mlb = joblib.load("backend/app/models/intent_mlb.pkl")
+            print("✅ Intent Classifier Loaded")
+        except Exception as e:
+             print(f"⚠️ Could not load intent model: {e}")
+             self.intent_pipeline = None
+             self.intent_mlb = None
+
         self.system_prompt = """
+
         You are an elite AI Executive Assistant. Analyze the email explicitly based on the FULL BODY content provided. 
         
         Extract/Generate:
@@ -63,9 +85,60 @@ class MailAgent:
 
     def analyze_email(self, email: Email) -> Dict[str, Any]:
         """
-        Analyzes the email using Real Gemini API.
+        Analyzes the email using Hybrid Approach: Local Model -> Real Gemini API.
         """
-        prompt = f"{self.system_prompt}\n\n📌 INPUT EMAIL\n\n{email.to_string()}\n\n📌 OUTPUT JSON"
+        # 1. Local Guard Layer
+        if self.spam_classifier and self.vectorizer:
+            try:
+                email_text = f"{email.subject} {email.body or email.body_preview}"
+                vec = self.vectorizer.transform([email_text])
+                prediction = self.spam_classifier.predict(vec)[0]
+                proba = self.spam_classifier.predict_proba(vec)[0]
+                spam_conf = proba[1]
+                
+                print(f"🔍 Local Filter Analysis: {'Spam' if prediction==1 else 'Ham'} (Prob: {spam_conf:.2f})")
+
+                # If highly confident it's spam (>80%), block it locally
+                if prediction == 1 and spam_conf > 0.8:
+                    return {
+                        "intent": "Spam",
+                        "urgency_score": 1,
+                        "risk_level": "High",
+                        "priority": "P4",
+                        "requires_action": False,
+                        "suggested_actions": ["Delete", "Block Sender"],
+                        "summary": "Flagged as high-confidence spam by local AI.",
+                        "suggested_reply": None,
+                        "sentiment": "Negative",
+                        "tone": "Urgent"
+                    }
+            except Exception as e:
+                print(f"⚠️ Local classification failed: {e}")
+
+            except Exception as e:
+                print(f"⚠️ Local classification failed: {e}")
+
+        # 2. Intent Recognition Layer (If not Spam)
+        detected_intents = []
+        if self.intent_pipeline and self.intent_mlb:
+             try:
+                email_text = f"{email.subject} {email.body or email.body_preview}"
+                # Pipeline handles vectorization internally
+                pred_matrix = self.intent_pipeline.predict([email_text])
+                detected_labels = self.intent_mlb.inverse_transform(pred_matrix)
+                
+                if detected_labels and detected_labels[0]:
+                    detected_intents = list(detected_labels[0])
+                    print(f"🏷️ Detected Intents: {detected_intents}")
+             except Exception as e:
+                 print(f"⚠️ Intent classification failed: {e}")
+
+        # 3. Gemini Smart Layer (Fallback/Deep Analysis)
+        intent_context = ""
+        if detected_intents:
+            intent_context = f"\n\n🤖 PRE-ANALYSIS INSIGHT: This email likely belongs to categories: {', '.join(detected_intents)}. Use this to guide your 'intent' and 'urgency' fields."
+
+        prompt = f"{self.system_prompt}{intent_context}\n\n📌 INPUT EMAIL\n\n{email.to_string()}\n\n📌 OUTPUT JSON"
         
         import time
         retries = 3

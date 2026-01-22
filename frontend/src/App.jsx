@@ -377,13 +377,7 @@ function App() {
                   )}
                   <span>{syncing ? 'Syncing...' : 'Sync Gmail'}</span>
                 </button>
-                <button
-                  onClick={handleReset}
-                  className="px-3 py-2 bg-red-900/50 hover:bg-red-800 text-red-200 text-xs rounded-md border border-red-700/50 transition-colors"
-                  title="Fix Sync Issues (Results in data wipe)"
-                >
-                  ⚠️ Reset DB
-                </button>
+
               </div>
             </div>
 
@@ -443,8 +437,27 @@ function App() {
                 {emails
                   .filter(email => {
                     if (category === 'All') return true;
-                    // Flexible matching for new categories
-                    if (category === 'Urgent') return email.priority === 'P1' || (email.intent && email.intent.includes('Urgent'));
+
+                    const intent = email.intent ? email.intent.toLowerCase() : '';
+
+                    // SMART MAPPING: Map Frontend Tabs to AI Intents
+                    if (category === 'Urgent') return email.priority === 'P1' || intent.includes('urgent');
+
+                    if (category === 'Personal') {
+                      // "Personal" tab catches: Social, Party, Family, Personal, Invitation
+                      return intent.includes('personal') || intent.includes('social') || intent.includes('party') || intent.includes('invitation') || intent.includes('family');
+                    }
+
+                    if (category === 'Finance') {
+                      // "Finance" tab catches: Invoice, Bank, Statement, Receipt, Loan
+                      return intent.includes('finance') || intent.includes('invoice') || intent.includes('bank') || intent.includes('statement') || intent.includes('receipt') || intent.includes('loan');
+                    }
+
+                    if (category === 'Work') {
+                      return intent.includes('work') || intent.includes('job') || intent.includes('meeting') || intent.includes('schedule');
+                    }
+
+                    // Default: Strict Match (Newsletter -> Newsletter)
                     return email.intent && email.intent.includes(category);
                   })
                   .map(email => (

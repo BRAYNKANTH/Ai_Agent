@@ -14,7 +14,7 @@ from sqlmodel import Session, select
 from typing import Optional
 
 from .agent import MailAgent, Email
-from .database import create_db_and_tables, get_session
+from .database import create_db_and_tables, get_session, engine
 from .models import User, ChatHistory
 from .meeting_database import create_meeting_db_and_tables, get_meeting_session
 from .meeting_agent import MeetingAgent
@@ -101,7 +101,7 @@ def on_startup():
     # This is a safe, idempotent operation to ensure columns exist
     try:
         from sqlmodel import text
-        with get_session() as session:
+        with Session(engine) as session:
             # 1. Add user_email to meeting if missing
             try:
                 session.exec(text("ALTER TABLE meeting ADD COLUMN user_email VARCHAR(255);"))

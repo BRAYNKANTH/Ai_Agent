@@ -32,6 +32,8 @@ jobs:
                const coredemo = require('@actions/core')
                return await coredemo.getIDToken()
            result-encoding: string
+      - name: Create .env file
+        run: echo "VITE_API_URL=https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net" > frontend/.env
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1

@@ -544,25 +544,24 @@ function App() {
                             Reply
                           </button>
 
-                          {/* AI Suggested Reply Button */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const aiBody = email.suggested_reply
-                                ? email.suggested_reply
-                                : `Hi ${email.sender.split(' ')[0] || 'there'},\n\n\n\nBest,\nBraynkanth`;
 
-                              openCompose({
-                                to: email.sender,
-                                subject: `Re: ${email.subject}`,
-                                body: aiBody
-                              });
-                            }}
-                            className="btn-primary text-xs px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-400 hover:to-purple-400 border-none flex items-center gap-2 rounded-lg shadow-lg shadow-purple-500/20"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                            AI Suggested Reply
-                          </button>
+                          {/* AI Suggested Reply Button - Only show if AI actually generated one */}
+                          {email.suggested_reply && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openCompose({
+                                  to: email.sender,
+                                  subject: `Re: ${email.subject}`,
+                                  body: email.suggested_reply
+                                });
+                              }}
+                              className="btn-primary text-xs px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-400 hover:to-purple-400 border-none flex items-center gap-2 rounded-lg shadow-lg shadow-purple-500/20"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                              AI Suggested Reply
+                            </button>
+                          )}
 
                           {/* Show Preview Box Only if it exists AND we are expanded */}
                           {email.suggested_reply && email.id === expandedEmailId && (

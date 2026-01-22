@@ -90,7 +90,11 @@ async def login(request: Request):
     request.session.pop('user', None)
     redirect_uri = get_safe_env("GOOGLE_REDIRECT_URI")
     if not redirect_uri:
-        redirect_uri = request.url_for('auth')
+        redirect_uri = str(request.url_for('auth'))
+        # Azure SSL termination fix: Force HTTPS if on azurewebsites
+        if "azurewebsites.net" in redirect_uri and redirect_uri.startswith("http://"):
+            redirect_uri = redirect_uri.replace("http://", "https://")
+            
     # Force offline access and consent to ensure we receive a refresh_token
     return await oauth.google.authorize_redirect(request, redirect_uri, access_type='offline', prompt='consent')
 
@@ -102,12 +106,13 @@ async def auth(request: Request, session: Session = Depends(get_session)):
     try:
         redirect_uri = get_safe_env("GOOGLE_REDIRECT_URI")
         if not redirect_uri:
-            redirect_uri = request.url_for('auth')
+            redirect_uri = str(request.url_for('auth'))
+            # Azure SSL termination fix: Force HTTPS if on azurewebsites
+            if "azurewebsites.net" in redirect_uri and redirect_uri.startswith("http://"):
+                redirect_uri = redirect_uri.replace("http://", "https://")
         
         print(f"Debug - Callback Request URL: {request.url}")
-        print(f"Debug - Headers: {request.headers}") # Check for Cookie header
-        print(f"Debug - Session keys: {request.session.keys()}")
-        print(f"Debug - State in params: {request.query_params.get('state')}")
+        print(f"Debug - Redirect URI used: {redirect_uri}")
         
         # NOTE: Authlib handles redirect_uri automatically from the request if it matches.
         # Passing it explicitly caused "multiple values" error.

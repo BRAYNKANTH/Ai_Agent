@@ -6,6 +6,7 @@ import { PriorityChart, CategoryChart } from './components/Charts'
 import MeetingAgentChat from './MeetingAgentChat'
 import MeetingDashboard from './components/MeetingDashboard'
 import ComposeModal from './components/ComposeModal'
+import Tutorial from './components/Tutorial'
 
 function App() {
   const [view, setView] = useState('landing') // landing, dashboard
@@ -194,25 +195,43 @@ function App() {
         <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
           AI Personal Assistant
         </h1>
-        {user ? (
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2 bg-white/5 px-3 py-1 rounded-full border border-white/10">
-              <img src={user.picture} alt={user.name} className="w-6 h-6 rounded-full" />
-              <span className="text-sm font-medium">{user.name}</span>
+        <div className="flex items-center gap-6">
+          <ul className="hidden md:flex space-x-6 text-sm font-medium text-gray-300">
+            {view === 'landing' && (
+              <>
+                <li><a href="#about" className="hover:text-primary transition-colors">About</a></li>
+                <li><a href="#contact" className="hover:text-primary transition-colors">Contact</a></li>
+              </>
+            )}
+            <li><button onClick={() => setView('tutorial')} className="hover:text-primary transition-colors">Tutorial</button></li>
+          </ul>
+
+          {user ? (
+            <div className="flex items-center space-x-4">
+              <div className="bg-white/5 py-1 px-3 rounded-full border border-white/10 hidden md:flex items-center space-x-2 cursor-pointer hover:bg-white/10 transition-colors" onClick={() => setView('dashboard')}>
+                <span className="text-sm font-bold text-gray-400">Dashboard</span>
+              </div>
+
+              <div className="flex items-center space-x-2 bg-white/5 px-3 py-1 rounded-full border border-white/10">
+                <img src={user.picture} alt={user.name} className="w-6 h-6 rounded-full" />
+                <span className="text-sm font-medium">{user.name}</span>
+              </div>
+              <button onClick={handleLogout} className="text-sm text-gray-400 hover:text-white">
+                Log Out
+              </button>
             </div>
-            <button onClick={handleLogout} className="text-sm text-gray-400 hover:text-white">
-              Log Out
+          ) : (
+            <button onClick={handleLogin} className="btn-primary text-sm px-4 py-2">
+              Login
             </button>
-          </div>
-        ) : (
-          <button onClick={handleLogin} className="btn-primary text-sm px-4 py-2">
-            Login
-          </button>
-        )}
+          )}
+        </div>
       </nav>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-        {view === 'landing' ? (
+        {view === 'tutorial' ? (
+          <Tutorial onComplete={() => setView(user ? 'dashboard' : 'landing')} />
+        ) : view === 'landing' ? (
           <div className="flex flex-col min-h-screen relative">
             {/* Hero Section with Background */}
             <div className="relative flex flex-col items-center justify-center text-center space-y-8 min-h-[80vh] w-full">

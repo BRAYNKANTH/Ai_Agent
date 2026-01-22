@@ -150,9 +150,14 @@ class GmailService:
                     tone=analysis.get('tone')
                 )
                 self.session.add(email_db)
-                new_emails.append(email_db)
+                try:
+                    self.session.commit()
+                    new_emails.append(email_db)
+                    print(f"✅ Saved Email: {gmail_id}")
+                except Exception as e:
+                    print(f"⚠️ Failed to save email {gmail_id}: {e}")
+                    self.session.rollback()
             
-            self.session.commit()
             return len(new_emails)
 
         except Exception as e:

@@ -145,8 +145,9 @@ def on_startup():
                 # Force column to be LONGTEXT to hold large emails
                 session.exec(text("ALTER TABLE email MODIFY COLUMN body LONGTEXT;"))
                 session.exec(text("ALTER TABLE email MODIFY COLUMN snippet TEXT;")) # Also snippet just in case
+                session.exec(text("ALTER TABLE email MODIFY COLUMN suggested_reply TEXT;")) # Fix for AI replies exceeding 255 chars
                 session.commit()
-                print("Migration: Updated email body to LONGTEXT.")
+                print("Migration: Updated email body/reply to LONGTEXT.")
             except Exception as e:
                 print(f"Migration Note (Body Fix): {e}")
 

@@ -3,6 +3,11 @@ from dotenv import load_dotenv
 import os
 from pathlib import Path
 
+import jwt
+from datetime import datetime, timedelta
+from fastapi import FastAPI, HTTPException, Request, Depends, status
+from fastapi.security import OAuth2PasswordBearer
+
 # Load env before importing DB modules
 load_dotenv()
 
@@ -12,6 +17,37 @@ def get_safe_env(key, default=None):
     if val:
         return val.strip('"').strip("'")
     return val
+
+# JWT Configuration
+SECRET_KEY = get_safe_env("SECRET_KEY", "secret")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_DAYS = 7
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+def verify_token(token: str):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except jwt.PyJWTError:
+        return None
+
+# Auth Dependency
+def get_current_user_token(token: str = Depends(oauth2_scheme), session: Session = Depends(get_session)):
+    payload = verify_token(token)
+    if not payload:
+         raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return payload # Returns dict with user info
 
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import RedirectResponse
@@ -143,12 +179,9 @@ async def auth(request: Request, session: Session = Depends(get_session)):
         print(f"Debug - Callback Request URL: {request.url}")
         print(f"Debug - Redirect URI used: {redirect_uri}")
         
-        # NOTE: Authlib handles redirect_uri automatically from the request if it matches.
-        # Passing it explicitly caused "multiple values" error.
         token = await oauth.google.authorize_access_token(request)
     except Exception as e:
         print(f"Auth Error: {e}") # Debug print
-        print(f"Debug - Session Dump: {request.session}")
         raise HTTPException(status_code=400, detail=str(e))
         
     user_info = token.get('userinfo')
@@ -169,41 +202,25 @@ async def auth(request: Request, session: Session = Depends(get_session)):
             session.commit()
             session.refresh(user)
             
-        # Store user AND TOKEN in session
+        # GENERATE JWT
         token_data = {
-            "access_token": token.get('access_token'),
-            "refresh_token": token.get('refresh_token'),
-            "token_type": token.get('token_type'),
-            "expires_in": token.get('expires_in'),
-            "scope": token.get('scope'),
-            "id_token": token.get('id_token'),
-            "expires_at": token.get('expires_at')
-        }
-
-        request.session['user'] = {
-            "id": user.id,
-            "email": user.email, 
-            "name": user.name, 
+            "sub": str(user.id),
+            "email": user.email,
+            "name": user.name,
             "picture": user.avatar_url,
-            "token": token_data 
+            "google_token": token # Store Google Token inside JWT payload (or partial)
         }
+        access_token = create_access_token(token_data)
     
-    # Redirect to frontend
-    target_url = get_safe_env("FRONTEND_URL", "http://localhost:5173")
-    return RedirectResponse(url=target_url)
+        # Redirect to frontend with Token
+        target_url = get_safe_env("FRONTEND_URL", "http://localhost:5173")
+        return RedirectResponse(url=f"{target_url}?token={access_token}")
+
+    return RedirectResponse(url=get_safe_env("FRONTEND_URL", "http://localhost:5173"))
 
 @app.get("/auth/me")
-def get_current_user(request: Request):
-    user = request.session.get('user')
-    if user:
-        # Don't return the token to the frontend
-        return {k: v for k, v in user.items() if k != 'token'}
-    raise HTTPException(status_code=401, detail="Not authenticated")
-
-@app.get("/auth/logout")
-def logout(request: Request):
-    request.session.pop('user', None)
-    return {"message": "Logged out"}
+def get_current_user(user_data: dict = Depends(get_current_user_token)):
+    return user_data
 
 
 from pydantic import BaseModel
@@ -229,13 +246,13 @@ def analyze_email(request: EmailRequest):
     return agent.analyze_email(email)
 
 @app.post("/api/sync")
-def sync_emails(request: Request, session: Session = Depends(get_session)):
-    user_data = request.session.get('user')
-    if not user_data or not user_data.get('token'):
-        raise HTTPException(status_code=401, detail="Not authenticated or no token")
+def sync_emails(request: Request, user_data: dict = Depends(get_current_user_token), session: Session = Depends(get_session)):
+    google_token = user_data.get('google_token')
+    if not google_token:
+        raise HTTPException(status_code=401, detail="No Google credentials in token")
     
     # Get User DB object
-    user = session.get(User, user_data['id'])
+    user = session.exec(select(User).where(User.email == user_data['email'])).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -243,18 +260,19 @@ def sync_emails(request: Request, session: Session = Depends(get_session)):
         raise HTTPException(status_code=500, detail="Agent not initialized")
 
     service = GmailService(session, agent)
-    count = service.fetch_recent_emails(user, user_data['token'])
+    count = service.fetch_recent_emails(user, google_token)
     
     return {"message": f"Synced {count} new emails", "count": count}
 
 @app.get("/api/emails")
-def get_emails(request: Request, session: Session = Depends(get_session)):
-    user_data = request.session.get('user')
-    if not user_data:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
+def get_emails(user_data: dict = Depends(get_current_user_token), session: Session = Depends(get_session)):
+    email = user_data['email']
+    user = session.exec(select(User).where(User.email == email)).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
     # Fetch recent emails from DB
-    stmt = select(EmailModel).where(EmailModel.user_id == user_data['id']).order_by(EmailModel.received_time.desc()).limit(50)
+    stmt = select(EmailModel).where(EmailModel.user_id == user.id).order_by(EmailModel.received_time.desc()).limit(50)
     emails = session.exec(stmt).all()
     return emails
 
@@ -264,12 +282,12 @@ class EmailSendRequest(BaseModel):
     body: str
 
 @app.post("/api/send-email")
-def send_email_endpoint(request: Request, email_request: EmailSendRequest, session: Session = Depends(get_session)):
-    user_data = request.session.get('user')
-    if not user_data or not user_data.get('token'):
-        raise HTTPException(status_code=401, detail="Not authenticated or no token")
+def send_email_endpoint(email_request: EmailSendRequest, user_data: dict = Depends(get_current_user_token), session: Session = Depends(get_session)):
+    google_token = user_data.get('google_token')
+    if not google_token:
+        raise HTTPException(status_code=401, detail="No Google credentials")
 
-    user = session.get(User, user_data['id'])
+    user = session.exec(select(User).where(User.email == user_data['email'])).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -278,7 +296,7 @@ def send_email_endpoint(request: Request, email_request: EmailSendRequest, sessi
 
     service = GmailService(session, agent) # Agent can be passed even if unused for sending
     try:
-        service.send_email(user, user_data['token'], email_request.to, email_request.subject, email_request.body)
+        service.send_email(user, google_token, email_request.to, email_request.subject, email_request.body)
         return {"message": "Email sent successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -308,7 +326,7 @@ class QueryInboxRequest(BaseModel):
     query: str
 
 @app.post("/api/agent/query_inbox")
-async def query_inbox(req: QueryInboxRequest, session: Session = Depends(get_session)):
+async def query_inbox(req: QueryInboxRequest, user_data: dict = Depends(get_current_user_token), session: Session = Depends(get_session)):
     try:
         from .rag_agent import InboxRAGAgent
         from .models import ChatHistory # Import here to avoid circulars if any
@@ -318,9 +336,9 @@ async def query_inbox(req: QueryInboxRequest, session: Session = Depends(get_ses
         answer = rag_agent.query_inbox(req.query)
         
         # Save to DB
-        user_email = request.session.get('user', {}).get('email')
-        user_msg = ChatHistory(sender="user", text=req.query, timestamp=datetime.datetime.utcnow(), user_email=user_email)
-        agent_msg = ChatHistory(sender="agent", text=answer, timestamp=datetime.datetime.utcnow(), user_email=user_email)
+        user_email = user_data.get('email')
+        user_msg = ChatHistory(sender="user", text=req.query, timestamp=datetime.utcnow(), user_email=user_email)
+        agent_msg = ChatHistory(sender="agent", text=answer, timestamp=datetime.utcnow(), user_email=user_email)
         session.add(user_msg)
         session.add(agent_msg)
         session.commit()
@@ -331,21 +349,13 @@ async def query_inbox(req: QueryInboxRequest, session: Session = Depends(get_ses
          raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/meeting-agent/chat")
-def chat_with_meeting_agent(request: ChatRequest, req: Request, session: Session = Depends(get_meeting_session)):
-    user_data = req.session.get('user')
-    if not user_data:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
+def chat_with_meeting_agent(request: ChatRequest, user_data: dict = Depends(get_current_user_token), session: Session = Depends(get_meeting_session)):
     user_email = user_data['email']
     meeting_agent = MeetingAgent(session, user_email)
     return meeting_agent.process_message(request.message, request.conversation_history)
 
 @app.get("/api/meetings")
-def get_all_meetings(req: Request, session: Session = Depends(get_meeting_session)):
-    user_data = req.session.get('user')
-    if not user_data:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-        
+def get_all_meetings(user_data: dict = Depends(get_current_user_token), session: Session = Depends(get_meeting_session)):
     try:
         user_email = user_data['email']
         stmt = select(Meeting).where(Meeting.user_email == user_email).order_by(Meeting.start_time)
@@ -356,22 +366,14 @@ def get_all_meetings(req: Request, session: Session = Depends(get_meeting_sessio
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/chat/history")
-def get_chat_history(req: Request, session: Session = Depends(get_meeting_session)):
-    user_data = req.session.get('user')
-    if not user_data:
-        return []
-
+def get_chat_history(user_data: dict = Depends(get_current_user_token), session: Session = Depends(get_meeting_session)):
     user_email = user_data['email']
     stmt = select(ChatHistory).where(ChatHistory.user_email == user_email).order_by(ChatHistory.timestamp)
     history = session.exec(stmt).all()
     return history
 
 @app.delete("/api/chat/history")
-def clear_chat_history(req: Request, session: Session = Depends(get_meeting_session)):
-    user_data = req.session.get('user')
-    if not user_data:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-
+def clear_chat_history(user_data: dict = Depends(get_current_user_token), session: Session = Depends(get_meeting_session)):
     user_email = user_data['email']
     stmt = select(ChatHistory).where(ChatHistory.user_email == user_email)
     history = session.exec(stmt).all()

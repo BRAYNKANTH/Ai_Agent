@@ -41,11 +41,14 @@ const ComposeModal = ({ isOpen, onClose, initialData = {} }) => {
 
     const handleSend = async () => {
         setSending(true);
+        const token = localStorage.getItem('token');
         try {
             const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/send-email`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ to, subject, body })
             });
 

@@ -18,7 +18,8 @@ mysql_url = f"mysql+mysqlconnector://{db_user}:{db_password}@{db_host}:{db_port}
 connect_args = {}
 ssl_ca = os.getenv("SSL_CA")
 if ssl_ca:
-    connect_args["ssl"] = {"ca": ssl_ca}
+    connect_args["ssl_ca"] = ssl_ca
+    connect_args["ssl_verify_cert"] = True
 
 engine = create_engine(mysql_url, echo=True, connect_args=connect_args)
 

@@ -18,12 +18,29 @@ mysql_url = f"mysql+mysqlconnector://{db_user}:{db_password}@{db_host}:{db_port}
 connect_args = {"use_pure": True} # Force pure Python to avoid C-ext SSL errors
 ssl_ca = os.getenv("SSL_CA")
 
+print(f"DEBUG: Current CWD: {os.getcwd()}")
+print(f"DEBUG: __file__: {__file__}")
+print(f"DEBUG: App Dir contents: {os.listdir(os.path.dirname(__file__))}")
+try:
+    parent_dir = os.path.dirname(os.path.dirname(__file__))
+    print(f"DEBUG: Parent Dir ({parent_dir}) contents: {os.listdir(parent_dir)}")
+except Exception as e:
+    print(f"DEBUG: Error listing parent dir: {e}")
+
 # Fallback: Try to find cert relative to this file if env var path fails
-if ssl_ca and not os.path.exists(ssl_ca):
-    # Check parent directory (backend root)
-    candidate = os.path.join(os.path.dirname(__file__), "..", os.path.basename(ssl_ca))
-    if os.path.exists(candidate):
-        ssl_ca = candidate
+if ssl_ca:
+    if not os.path.exists(ssl_ca):
+        print(f"DEBUG: SSL_CA path '{ssl_ca}' does not exist. Trying fallback.")
+        # Check parent directory (backend root)
+        candidate = os.path.join(os.path.dirname(__file__), "..", os.path.basename(ssl_ca))
+        print(f"DEBUG: Checking candidate: {candidate}")
+        if os.path.exists(candidate):
+            print("DEBUG: Candidate found!")
+            ssl_ca = candidate
+        else:
+            print("DEBUG: Candidate NOT found.")
+    else:
+        print(f"DEBUG: SSL_CA path '{ssl_ca}' exists!")
 
 if ssl_ca:
     connect_args["ssl_ca"] = ssl_ca

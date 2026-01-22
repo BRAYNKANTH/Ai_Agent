@@ -47,9 +47,12 @@ class MailAgent:
 
         # Load Local Spam Model
         import joblib
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        models_dir = os.path.join(current_dir, "models")
+        
         try:
-            self.spam_classifier = joblib.load("backend/app/models/spam_classifier.pkl")
-            self.vectorizer = joblib.load("backend/app/models/tfidf_vectorizer.pkl")
+            self.spam_classifier = joblib.load(os.path.join(models_dir, "spam_classifier.pkl"))
+            self.vectorizer = joblib.load(os.path.join(models_dir, "tfidf_vectorizer.pkl"))
             print("✅ Local Spam Filter Loaded")
         except Exception as e:
             print(f"⚠️ Could not load local spam model: {e}")
@@ -58,8 +61,8 @@ class MailAgent:
 
         # Load Intent Classifier (Multi-Label)
         try:
-            self.intent_pipeline = joblib.load("backend/app/models/intent_pipeline.pkl")
-            self.intent_mlb = joblib.load("backend/app/models/intent_mlb.pkl")
+            self.intent_pipeline = joblib.load(os.path.join(models_dir, "intent_pipeline.pkl"))
+            self.intent_mlb = joblib.load(os.path.join(models_dir, "intent_mlb.pkl"))
             print("✅ Intent Classifier Loaded")
         except Exception as e:
              print(f"⚠️ Could not load intent model: {e}")

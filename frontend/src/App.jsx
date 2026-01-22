@@ -20,6 +20,9 @@ function App() {
   const [isComposeOpen, setIsComposeOpen] = useState(false)
   const [composeData, setComposeData] = useState({})
 
+  // Chat Widget State
+  const [showChat, setShowChat] = useState(false)
+
   const openCompose = (data = {}) => {
     setComposeData(data)
     setIsComposeOpen(true)
@@ -210,26 +213,80 @@ function App() {
 
       <main className="max-w-7xl mx-auto px-6 py-8">
         {view === 'landing' ? (
-          <div className="flex flex-col items-center text-center space-y-8 mt-20">
-            <h2 className="text-5xl md:text-7xl font-extrabold tracking-tight">
-              Your Inbox, <span className="text-primary">Mastered</span>.
-            </h2>
-            <p className="text-xl text-gray-400 max-w-2xl">
-              Real-time AI analysis. Turn chaos into clarity.
-            </p>
-            <button
-              onClick={handleLogin}
-              className="btn-primary text-lg px-8 py-3 shadow-lg shadow-primary/20 hover:shadow-primary/40 transform hover:-translate-y-1 transition-all"
-            >
-              Get Started with Google
-            </button>
+          <div className="flex flex-col min-h-screen relative">
+            {/* Hero Section with Background */}
+            <div className="relative flex flex-col items-center justify-center text-center space-y-8 min-h-[80vh] w-full">
+              <div
+                className="absolute inset-0 bg-cover bg-center z-0"
+                style={{ backgroundImage: `url('/landing-bg.png')` }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-b from-dark/90 via-dark/70 to-dark z-10"></div>
+              </div>
+
+              <div className="relative z-20 max-w-4xl px-4 animate-fade-in-up">
+                <h2 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 text-white drop-shadow-lg">
+                  Your Inbox, <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-cyan-400">Mastered</span>.
+                </h2>
+                <p className="text-xl text-gray-200 max-w-2xl mx-auto mb-8 drop-shadow-md font-medium">
+                  Stop drowning in emails. Let our AI analyze, prioritize, and draft responses for you in real-time.
+                </p>
+                <button
+                  onClick={handleLogin}
+                  className="btn-primary text-lg px-8 py-4 shadow-lg shadow-primary/30 hover:shadow-primary/50 transform hover:-translate-y-1 transition-all rounded-full"
+                >
+                  Get Started with Google
+                </button>
+              </div>
+            </div>
+
+            {/* About Us Section */}
+            <section id="about" className="py-20 px-6 bg-dark">
+              <div className="max-w-6xl mx-auto">
+                <h3 className="text-3xl font-bold text-center mb-12 bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-blue-500">What is AI Doing?</h3>
+                <div className="grid md:grid-cols-3 gap-8 text-center">
+                  <div className="p-8 bg-white/5 rounded-2xl border border-white/10 hover:border-primary/50 transition-colors">
+                    <div className="text-4xl mb-4">🧠</div>
+                    <h4 className="text-xl font-bold mb-3">Intelligent Analysis</h4>
+                    <p className="text-gray-400">Our AI reads every email, understanding context, urgency, and sentiment to highlight what matters most.</p>
+                  </div>
+                  <div className="p-8 bg-white/5 rounded-2xl border border-white/10 hover:border-primary/50 transition-colors">
+                    <div className="text-4xl mb-4">✍️</div>
+                    <h4 className="text-xl font-bold mb-3">Smart Drafting</h4>
+                    <p className="text-gray-400">Struggling for words? The AI drafts professional, context-aware replies for you in seconds.</p>
+                  </div>
+                  <div className="p-8 bg-white/5 rounded-2xl border border-white/10 hover:border-primary/50 transition-colors">
+                    <div className="text-4xl mb-4">📅</div>
+                    <h4 className="text-xl font-bold mb-3">Meeting Management</h4>
+                    <p className="text-gray-400">Never miss a meeting. The AI tracks your schedule and provides timely automated reminders.</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Contact Us Section */}
+            <section id="contact" className="py-20 px-6 bg-gradient-to-b from-dark to-black border-t border-white/5">
+              <div className="max-w-4xl mx-auto text-center">
+                <h3 className="text-3xl font-bold mb-8 text-white">Contact Us</h3>
+                <p className="text-gray-400 mb-8">Have questions or feedback? We'd love to hear from you.</p>
+                <div className="flex flex-col md:flex-row justify-center gap-6">
+                  <a href="mailto:support@aiassistant.com" className="px-6 py-3 bg-white/10 rounded-lg hover:bg-white/20 transition-colors flex items-center justify-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                    support@aiassistant.com
+                  </a>
+                  <a href="#" className="px-6 py-3 bg-white/10 rounded-lg hover:bg-white/20 transition-colors flex items-center justify-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" /></svg>
+                    Live Chat
+                  </a>
+                </div>
+              </div>
+            </section>
           </div>
         ) : (
           <div>
             {/* Dashboard Controls */}
             <div className="flex justify-between items-center mb-8">
               <div className="flex space-x-1 bg-white/5 p-1 rounded-lg">
-                {['overview', 'inbox', 'assistant', 'calendar'].map(t => (
+                {['overview', 'inbox', 'calendar'].map(t => (
                   <button
                     key={t}
                     onClick={() => setTab(t)}
@@ -439,12 +496,6 @@ function App() {
               </div>
             )}
 
-            {/* ASSISTANT TAB */}
-            {tab === 'assistant' && (
-              <div className="animate-fade-in">
-                <MeetingAgentChat />
-              </div>
-            )}
 
             {/* CALENDAR TAB */}
             {tab === 'calendar' && (
@@ -455,6 +506,31 @@ function App() {
           </div>
         )}
       </main>
+
+      {/* Floating Chat Widget */}
+      {view === 'dashboard' && (
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+          {/* Chat Window Popover */}
+          {showChat && (
+            <div className="mb-4 w-[400px] h-[600px] shadow-2xl rounded-2xl overflow-hidden animate-scale-in origin-bottom-right">
+              <MeetingAgentChat isWidget={true} onClose={() => setShowChat(false)} />
+            </div>
+          )}
+
+          {/* Floating Action Button */}
+          <button
+            onClick={() => setShowChat(!showChat)}
+            className={`p-4 rounded-full shadow-lg shadow-primary/30 transition-all transform hover:scale-105 ${showChat ? 'bg-gray-700 text-white rotate-90' : 'btn-primary'}`}
+          >
+            {showChat ? (
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            ) : (
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+            )}
+          </button>
+        </div>
+      )}
+
 
       <ComposeModal
         isOpen={isComposeOpen}

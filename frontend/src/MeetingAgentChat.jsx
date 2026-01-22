@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-function MeetingAgentChat() {
+function MeetingAgentChat({ isWidget, onClose }) {
     const [input, setInput] = useState('');
     const [messages, setMessages] = useState([]);
 
@@ -57,13 +57,13 @@ function MeetingAgentChat() {
     };
 
     return (
-        <div className="flex flex-col h-[600px] glass-card max-w-2xl mx-auto mt-4 overflow-hidden">
+        <div className={`flex flex-col ${isWidget ? 'h-full w-full' : 'h-[600px] max-w-2xl mx-auto mt-4'} glass-card overflow-hidden bg-gray-900/95 backdrop-blur-xl`}>
             <div className="flex items-center justify-between p-4 border-b border-white/10 bg-white/5">
                 <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-xs font-bold">AI</div>
-                    <h2 className="text-lg font-bold text-white">AI Manager</h2>
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-xs font-bold shadow-lg shadow-blue-500/20">AI</div>
+                    <h2 className="text-lg font-bold text-white">AI Assistant</h2>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1">
                     <button
                         onClick={async () => {
                             if (window.confirm("Start a new chat? This will clear current history.")) {
@@ -75,32 +75,19 @@ function MeetingAgentChat() {
                                 setMessages([]);
                             }
                         }}
-                        className="text-white/50 hover:text-white hover:bg-white/10 p-2 rounded-lg transition-colors text-xs flex items-center gap-1"
+                        className="text-white/50 hover:text-white hover:bg-white/10 p-2 rounded-lg transition-colors"
                         title="New Chat"
                     >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                        <span>New Chat</span>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                     </button>
-                    <button
-                        onClick={async () => {
-                            if (window.confirm("Delete chat history permanently?")) {
-                                const token = localStorage.getItem('token');
-                                await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/chat/history`, {
-                                    method: 'DELETE',
-                                    headers: { 'Authorization': `Bearer ${token}` }
-                                });
-                                setMessages([]);
-                            }
-                        }}
-                        className="text-red-400/70 hover:text-red-400 hover:bg-red-400/10 p-2 rounded-lg transition-colors"
-                        title="Delete Chat History"
-                    >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                    </button>
+                    {isWidget && (
+                        <button
+                            onClick={onClose}
+                            className="text-white/50 hover:text-white hover:bg-white/10 p-2 rounded-lg transition-colors"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    )}
                 </div>
             </div>
 

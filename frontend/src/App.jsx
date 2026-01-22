@@ -170,6 +170,28 @@ function App() {
     }
   }
 
+  const handleReset = async () => {
+    if (!localStorage.getItem('token')) return;
+    if (!window.confirm("⚠️ DANGER: This will delete all emails in the local database. Proceed?")) return;
+
+    const toastId = toast.loading('Reseting Database...');
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/api/admin/reset-emails`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (res.ok) {
+        toast.success("Database Reset & Schema Fixed!", { id: toastId });
+        setEmails([]);
+      } else {
+        const err = await res.json();
+        toast.error(`Reset Failed: ${err.detail}`, { id: toastId });
+      }
+    } catch (e) {
+      toast.error("Network Error on Reset", { id: toastId });
+    }
+  }
+
   const handleLogin = () => {
     // Redirect to backend login, which will redirect back with ?token=...
     window.location.href = `${import.meta.env.VITE_API_URL || 'https://aiagent-cygyd5eaejbbegcg.japanwest-01.azurewebsites.net'}/auth/login`
@@ -354,6 +376,13 @@ function App() {
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                   )}
                   <span>{syncing ? 'Syncing...' : 'Sync Gmail'}</span>
+                </button>
+                <button
+                  onClick={handleReset}
+                  className="px-3 py-2 bg-red-900/50 hover:bg-red-800 text-red-200 text-xs rounded-md border border-red-700/50 transition-colors"
+                  title="Fix Sync Issues (Results in data wipe)"
+                >
+                  ⚠️ Reset DB
                 </button>
               </div>
             </div>

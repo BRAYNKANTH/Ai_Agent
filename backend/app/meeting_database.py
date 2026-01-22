@@ -14,7 +14,13 @@ db_name = os.getenv("DB_NAME", "agent_db") # Using same DB for now/simplicity
 
 mysql_url = f"mysql+mysqlconnector://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 
-engine = create_engine(mysql_url, echo=True)
+# SSL Configuration for Azure MySQL
+connect_args = {}
+ssl_ca = os.getenv("SSL_CA")
+if ssl_ca:
+    connect_args["ssl"] = {"ca": ssl_ca}
+
+engine = create_engine(mysql_url, echo=True, connect_args=connect_args)
 
 def create_meeting_db_and_tables():
     SQLModel.metadata.create_all(engine)

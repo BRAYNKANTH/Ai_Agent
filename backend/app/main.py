@@ -23,9 +23,20 @@ app = FastAPI(title="AI Personal Assistant API")
 
 # Middleware
 from fastapi.middleware.cors import CORSMiddleware
+
+# Get allowed origins from env, default to validation set
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
+allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
+# Add default local development origins
+allowed_origins.extend(["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174"])
+# Add production frontend URL if set
+frontend_url = os.getenv("FRONTEND_URL")
+if frontend_url and frontend_url not in allowed_origins:
+    allowed_origins.append(frontend_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174"], # Frontend URLs
+    allow_origins=allowed_origins, # Frontend URLs
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -118,9 +129,6 @@ async def auth(request: Request, session: Session = Depends(get_session)):
             session.refresh(user)
             
         # Store user AND TOKEN in session
-        # NOTE: asking for 'offline' access gives a refresh_token only the FIRST time.
-        # Ideally we store these in the DB. For MVP session is fine (but refresh token might be lost if session clears)
-        # Prepare token to store
         token_data = {
             "access_token": token.get('access_token'),
             "refresh_token": token.get('refresh_token'),
@@ -131,10 +139,6 @@ async def auth(request: Request, session: Session = Depends(get_session)):
             "expires_at": token.get('expires_at')
         }
 
-        # If no refresh token in new token, check if we had one previously? 
-        # Actually, for MVP it's safer to just rely on force consent or re-login.
-        # But let's check if the raw token has it.
-        
         request.session['user'] = {
             "id": user.id,
             "email": user.email, 
@@ -142,8 +146,10 @@ async def auth(request: Request, session: Session = Depends(get_session)):
             "picture": user.avatar_url,
             "token": token_data 
         }
-        
-    return RedirectResponse(url='http://localhost:5173')
+    
+    # Redirect to frontend
+    target_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    return RedirectResponse(url=target_url)
 
 @app.get("/auth/me")
 def get_current_user(request: Request):

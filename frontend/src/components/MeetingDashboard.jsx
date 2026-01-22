@@ -10,7 +10,7 @@ const MeetingDashboard = () => {
 
     const fetchMeetings = async () => {
         try {
-            const response = await fetch('http://localhost:8000/api/meetings');
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/meetings`);
             if (response.ok) {
                 const data = await response.json();
                 setMeetings(data);
@@ -25,7 +25,7 @@ const MeetingDashboard = () => {
     const deleteMeeting = async (id) => {
         if (!confirm("Are you sure you want to cancel this meeting?")) return;
         try {
-            const res = await fetch(`http://localhost:8000/api/meetings/${id}`, { method: 'DELETE' });
+            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/meetings/${id}`, { method: 'DELETE' });
             if (res.ok) {
                 fetchMeetings(); // Reload
             } else {

@@ -48,7 +48,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.add_middleware(SessionMiddleware, secret_key=get_safe_env("SECRET_KEY", "secret"), https_only=False, same_site="lax")
+app.add_middleware(
+    SessionMiddleware, 
+    secret_key=get_safe_env("SECRET_KEY", "secret"), 
+    https_only=True,   # Required for SameSite="none"
+    same_site="none"   # Required for cross-domain requests (frontend/backend on different domains)
+)
 
 # Database
 @app.on_event("startup")

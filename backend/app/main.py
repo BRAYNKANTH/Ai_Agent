@@ -139,6 +139,17 @@ def on_startup():
                 print("Migration: Added gmail_id to email table.")
             except Exception as e:
                 print(f"Migration Note (Email gmail_id): {e}")
+
+            # 3. FIX BODY LENGTH (Data too long error)
+            try:
+                # Force column to be LONGTEXT to hold large emails
+                session.exec(text("ALTER TABLE email MODIFY COLUMN body LONGTEXT;"))
+                session.exec(text("ALTER TABLE email MODIFY COLUMN snippet TEXT;")) # Also snippet just in case
+                session.commit()
+                print("Migration: Updated email body to LONGTEXT.")
+            except Exception as e:
+                print(f"Migration Note (Body Fix): {e}")
+
     except Exception as e:
         print(f"Email Migration Failed: {e}")
 
@@ -417,13 +428,22 @@ def delete_meeting_endpoint(meeting_id: int, session: Session = Depends(get_meet
 @app.post("/api/admin/reset-emails")
 def reset_emails_endpoint(user_data: dict = Depends(get_current_user_token), session: Session = Depends(get_session)):
     """
-    Emergency Endpoint to wipe emails and enforce clean slate.
+    Emergency Endpoint to wipe emails and enforce clean slate + Schema Fix.
     """
     try:
         from sqlmodel import text
-        # WIPE ALL EMAILS
+        # 1. WIPE ALL EMAILS
         session.exec(text("DELETE FROM email"))
+        
+        # 2. FORCE SCHEMA MIGRATION (Add gmail_id if missing)
+        try:
+            session.exec(text("ALTER TABLE email ADD COLUMN gmail_id VARCHAR(255);"))
+            session.exec(text("CREATE UNIQUE INDEX ix_email_gmail_id ON email (gmail_id);"))
+            print("Reset: Added gmail_id column.")
+        except Exception as e:
+            print(f"Reset: Column might already exist ({e})")
+
         session.commit()
-        return {"message": "✅ All emails have been wiped. Sync again to fetch fresh duplicates-free data."}
+        return {"message": "✅ Database Wiped & Schema Fixed. You can now Sync."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

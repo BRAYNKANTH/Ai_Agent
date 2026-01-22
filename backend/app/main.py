@@ -7,6 +7,18 @@ import jwt
 from datetime import datetime, timedelta
 from fastapi import FastAPI, HTTPException, Request, Depends, status
 from fastapi.security import OAuth2PasswordBearer
+from starlette.middleware.sessions import SessionMiddleware
+from starlette.responses import RedirectResponse
+from authlib.integrations.starlette_client import OAuth
+from sqlmodel import Session, select
+from typing import Optional
+
+from .agent import MailAgent, Email
+from .database import create_db_and_tables, get_session
+from .models import User, ChatHistory
+from .meeting_database import create_meeting_db_and_tables, get_meeting_session
+from .meeting_agent import MeetingAgent
+from .meeting_models import Meeting
 
 # Load env before importing DB modules
 load_dotenv()
@@ -49,18 +61,6 @@ def get_current_user_token(token: str = Depends(oauth2_scheme), session: Session
         )
     return payload # Returns dict with user info
 
-from starlette.middleware.sessions import SessionMiddleware
-from starlette.responses import RedirectResponse
-from authlib.integrations.starlette_client import OAuth
-from sqlmodel import Session, select
-from typing import Optional
-from .agent import MailAgent, Email
-from .database import create_db_and_tables, get_session
-from .models import User
-from .meeting_database import create_meeting_db_and_tables, get_meeting_session
-from .meeting_agent import MeetingAgent
-from .meeting_models import Meeting
-from .models import ChatHistory
 
 app = FastAPI(title="AI Personal Assistant API")
 

@@ -71,7 +71,7 @@ from fastapi.middleware.cors import CORSMiddleware
 allowed_origins_env = get_safe_env("ALLOWED_ORIGINS", "")
 allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
 # Add default local development origins
-allowed_origins.extend(["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174"])
+allowed_origins.extend(["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "https://blue-stone-0283a3100.4.azurestaticapps.net"])
 # Add production frontend URL if set
 frontend_url = get_safe_env("FRONTEND_URL")
 if frontend_url and frontend_url not in allowed_origins:
